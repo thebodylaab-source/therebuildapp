@@ -103,6 +103,7 @@ export const adminDocuments = sqliteTable("admin_documents", {
   fileUrl: text("file_url").notNull(), // URL (upload ou externo)
   fileType: text("file_type").notNull().default("pdf"), // pdf | doc | other
   phase: text("phase").notNull().default("todas"), // fundacao | construcao | forca | todas
+  tags: text("tags").notNull().default(""), // JSON array ex: ["sono","hormonas"]
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
 
@@ -114,6 +115,7 @@ export const adminVideos = sqliteTable("admin_videos", {
   videoUrl: text("video_url").notNull(), // YouTube URL ou direto
   phase: text("phase").notNull().default("todas"),
   category: text("category").notNull().default("tecnica"), // tecnica | nutricao | motivacao | outro
+  tags: text("tags").notNull().default(""), // JSON array ex: ["sono","treino"]
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
 

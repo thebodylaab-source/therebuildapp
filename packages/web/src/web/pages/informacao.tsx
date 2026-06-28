@@ -10,6 +10,7 @@ type Document = {
   fileUrl: string;
   fileType: string;
   phase: string | null;
+  tags?: string;
   createdAt: string;
 };
 
@@ -20,6 +21,7 @@ type Video = {
   videoUrl: string;
   phase: string | null;
   category: string;
+  tags?: string;
   createdAt: string;
 };
 
@@ -54,6 +56,14 @@ function getYoutubeEmbed(url: string | null | undefined): string | null {
 
 function matchesCategory(item: Document | Video, cat: string): boolean {
   if (cat === "todos") return true;
+  // Check tags first (exact match)
+  if (item.tags) {
+    try {
+      const tagArr: string[] = JSON.parse(item.tags);
+      if (tagArr.includes(cat)) return true;
+    } catch { /* ignore */ }
+  }
+  // Fallback: keyword search in title/description/category
   const searchIn = [
     ("category" in item ? item.category : ""),
     item.title,

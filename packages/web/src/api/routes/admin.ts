@@ -77,7 +77,7 @@ export const adminRoutes = new Hono()
 
   .post("/documents", requireAuth, requireAdmin, async (c) => {
     const body = await c.req.json();
-    const { title, description, fileUrl, fileType, phase } = body;
+    const { title, description, fileUrl, fileType, phase, tags } = body;
     if (!title || !fileUrl) return c.json({ message: "Campos em falta" }, 400);
     const id = nanoid();
     await db.insert(schema.adminDocuments).values({
@@ -86,6 +86,7 @@ export const adminRoutes = new Hono()
       fileUrl,
       fileType: fileType || "pdf",
       phase: phase || "todas",
+      tags: Array.isArray(tags) ? JSON.stringify(tags) : (tags || "[]"),
     });
     return c.json({ id }, 201);
   })
@@ -105,7 +106,7 @@ export const adminRoutes = new Hono()
 
   .post("/videos", requireAuth, requireAdmin, async (c) => {
     const body = await c.req.json();
-    const { title, description, videoUrl, phase, category } = body;
+    const { title, description, videoUrl, phase, category, tags } = body;
     if (!title || !videoUrl) return c.json({ message: "Campos em falta" }, 400);
     const id = nanoid();
     await db.insert(schema.adminVideos).values({
@@ -114,6 +115,7 @@ export const adminRoutes = new Hono()
       videoUrl,
       phase: phase || "todas",
       category: category || "tecnica",
+      tags: Array.isArray(tags) ? JSON.stringify(tags) : (tags || "[]"),
     });
     return c.json({ id }, 201);
   })

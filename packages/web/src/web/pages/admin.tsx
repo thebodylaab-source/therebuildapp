@@ -10,6 +10,17 @@ const DURATIONS = [7, 10, 15, 20, 25, 30, 45, 60] as const;
 const DOC_PHASES = ["todas", "fundacao", "construcao", "forca"] as const;
 const VIDEO_CATS = ["tecnica", "nutricao", "motivacao", "outro"] as const;
 
+const TAG_OPTIONS = [
+  { key: "sono",      label: "Sono" },
+  { key: "hormonas",  label: "Hormonas" },
+  { key: "pesquisa",  label: "Pesquisa" },
+  { key: "filhos",    label: "Família" },
+  { key: "nutricao",  label: "Nutrição" },
+  { key: "treino",    label: "Treino" },
+  { key: "mindset",   label: "Mindset" },
+  { key: "outro",     label: "Outro" },
+];
+
 const phaseLabel: Record<string, string> = {
   fundacao: "Fundação",
   construcao: "Construção",
@@ -322,7 +333,7 @@ function AdminWorkouts({ qc }: { qc: any }) {
 // ── DOCUMENTOS ────────────────────────────────────────────────────────────────
 
 function AdminDocuments({ qc }: { qc: any }) {
-  const [form, setForm] = useState({ title: "", description: "", fileUrl: "", fileType: "pdf", phase: "todas" });
+  const [form, setForm] = useState({ title: "", description: "", fileUrl: "", fileType: "pdf", phase: "todas", tags: [] as string[] });
   const [open, setOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
@@ -332,7 +343,7 @@ function AdminDocuments({ qc }: { qc: any }) {
 
   const create = useMutation({
     mutationFn: async (body: any) => (await (api as any).admin.documents.$post({ json: body })).json(),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-documents"] }); setForm({ title: "", description: "", fileUrl: "", fileType: "pdf", phase: "todas" }); setOpen(false); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-documents"] }); setForm({ title: "", description: "", fileUrl: "", fileType: "pdf", phase: "todas", tags: [] }); setOpen(false); },
   });
 
   const remove = useMutation({
@@ -406,10 +417,11 @@ function AdminDocuments({ qc }: { qc: any }) {
                   </select>
                 </FormField>
               </div>
+              <TagChipSelector selected={form.tags} onChange={tags => setForm(f => ({ ...f, tags }))} />
             </div>
             <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
               <button onClick={() => setOpen(false)} style={{ ...btnStyle("var(--border)"), color: "var(--text-2)" }}>Cancelar</button>
-              <button onClick={() => create.mutate(form)} disabled={create.isPending || !form.title || !form.fileUrl} style={{ ...btnStyle("var(--accent)"), flex: 1 }}>
+              <button onClick={() => create.mutate({ ...form, tags: form.tags })} disabled={create.isPending || !form.title || !form.fileUrl} style={{ ...btnStyle("var(--accent)"), flex: 1 }}>
                 {create.isPending ? "A guardar..." : "Adicionar"}
               </button>
             </div>
@@ -423,7 +435,7 @@ function AdminDocuments({ qc }: { qc: any }) {
 // ── VÍDEOS ────────────────────────────────────────────────────────────────────
 
 function AdminVideos({ qc }: { qc: any }) {
-  const [form, setForm] = useState({ title: "", description: "", videoUrl: "", phase: "todas", category: "tecnica" });
+  const [form, setForm] = useState({ title: "", description: "", videoUrl: "", phase: "todas", category: "tecnica", tags: [] as string[] });
   const [open, setOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
@@ -433,7 +445,7 @@ function AdminVideos({ qc }: { qc: any }) {
 
   const create = useMutation({
     mutationFn: async (body: any) => (await (api as any).admin.videos.$post({ json: body })).json(),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-videos"] }); setForm({ title: "", description: "", videoUrl: "", phase: "todas", category: "tecnica" }); setOpen(false); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-videos"] }); setForm({ title: "", description: "", videoUrl: "", phase: "todas", category: "tecnica", tags: [] }); setOpen(false); },
   });
 
   const remove = useMutation({
@@ -516,10 +528,11 @@ function AdminVideos({ qc }: { qc: any }) {
                   </select>
                 </FormField>
               </div>
+              <TagChipSelector selected={form.tags} onChange={tags => setForm(f => ({ ...f, tags }))} />
             </div>
             <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
               <button onClick={() => setOpen(false)} style={{ ...btnStyle("var(--border)"), color: "var(--text-2)" }}>Cancelar</button>
-              <button onClick={() => create.mutate(form)} disabled={create.isPending || !form.title || !form.videoUrl} style={{ ...btnStyle("var(--accent)"), flex: 1 }}>
+              <button onClick={() => create.mutate({ ...form, tags: form.tags })} disabled={create.isPending || !form.title || !form.videoUrl} style={{ ...btnStyle("var(--accent)"), flex: 1 }}>
                 {create.isPending ? "A guardar..." : "Adicionar"}
               </button>
             </div>
@@ -531,6 +544,74 @@ function AdminVideos({ qc }: { qc: any }) {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+function TagChipSelector({ selected, onChange }: { selected: string[]; onChange: (tags: string[]) => void }) {
+  const [freeText, setFreeText] = useState("");
+
+  function toggle(key: string) {
+    onChange(selected.includes(key) ? selected.filter(t => t !== key) : [...selected, key]);
+  }
+
+  function addFree() {
+    const val = freeText.trim().toLowerCase().replace(/\s+/g, "-");
+    if (val && !selected.includes(val)) onChange([...selected, val]);
+    setFreeText("");
+  }
+
+  const extraTags = selected.filter(t => !TAG_OPTIONS.find(o => o.key === t));
+
+  return (
+    <div>
+      <label style={labelStyle}>Tags / Categorias Info</label>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "8px" }}>
+        {TAG_OPTIONS.map(opt => {
+          const active = selected.includes(opt.key);
+          return (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => toggle(opt.key)}
+              style={{
+                padding: "5px 12px", borderRadius: "20px", cursor: "pointer",
+                border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
+                background: active ? "var(--accent)" : "var(--surface)",
+                color: active ? "#000" : "var(--text-2)",
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontWeight: 700, fontSize: "13px", letterSpacing: "0.04em",
+                transition: "all 0.15s",
+              }}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+      {extraTags.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "8px" }}>
+          {extraTags.map(t => (
+            <button key={t} type="button" onClick={() => toggle(t)} style={{
+              padding: "4px 10px", borderRadius: "20px", cursor: "pointer",
+              border: "1px solid var(--accent)", background: "var(--accent)",
+              color: "#000", fontFamily: "'Inter', sans-serif", fontSize: "12px",
+            }}>
+              {t} ✕
+            </button>
+          ))}
+        </div>
+      )}
+      <div style={{ display: "flex", gap: "8px" }}>
+        <input
+          value={freeText}
+          onChange={e => setFreeText(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addFree(); } }}
+          placeholder="Tag personalizada... (Enter para adicionar)"
+          style={{ ...inputStyle, fontSize: "13px", flex: 1 }}
+        />
+        <button type="button" onClick={addFree} style={btnSmall("var(--accent)", "var(--accent-glow)")}>+</button>
+      </div>
+    </div>
+  );
+}
 
 function FormField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
