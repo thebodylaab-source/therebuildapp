@@ -23,12 +23,16 @@ type Video = {
   createdAt: string;
 };
 
-const PHASES = [
-  { value: "all", label: "Todas as fases" },
-  { value: "fundacao", label: "Fundação" },
-  { value: "construcao", label: "Construção" },
-  { value: "intensidade", label: "Intensidade" },
-  { value: "manutencao", label: "Manutenção" },
+const KNOWLEDGE_CATEGORIES = [
+  { key: "todos",     label: "Tudo",      icon: "◈", color: "#B8975A" },
+  { key: "sono",      label: "Sono",      icon: "◐", color: "#4A7A9B" },
+  { key: "hormonas",  label: "Hormonas",  icon: "⬡", color: "#6B7A5A" },
+  { key: "pesquisa",  label: "Pesquisa",  icon: "◎", color: "#7A5A8A" },
+  { key: "filhos",    label: "Família",   icon: "△", color: "#8A6A4A" },
+  { key: "nutricao",  label: "Nutrição",  icon: "◑", color: "#4A8A6A" },
+  { key: "treino",    label: "Treino",    icon: "⚡", color: "#9A6A4A" },
+  { key: "mindset",   label: "Mindset",   icon: "◆", color: "#5A6A8A" },
+  { key: "outro",     label: "Outro",     icon: "·", color: "#8A8A7A" },
 ];
 
 function getYoutubeEmbed(url: string | null | undefined): string | null {
@@ -48,9 +52,31 @@ function getYoutubeEmbed(url: string | null | undefined): string | null {
   }
 }
 
+function matchesCategory(item: Document | Video, cat: string): boolean {
+  if (cat === "todos") return true;
+  const searchIn = [
+    ("category" in item ? item.category : ""),
+    item.title,
+    item.description || "",
+    item.phase || "",
+  ].join(" ").toLowerCase();
+  const aliases: Record<string, string[]> = {
+    sono:     ["sono", "sleep", "descanso", "recuperação"],
+    hormonas: ["hormon", "testosterona", "cortisol", "endocrino"],
+    pesquisa: ["pesquisa", "estudo", "ciência", "research", "evidência"],
+    filhos:   ["filho", "familia", "pai", "criança", "equilíbrio"],
+    nutricao: ["nutric", "alimenta", "proteína", "caloria", "dieta"],
+    treino:   ["treino", "exercício", "musculo", "força", "técnica", "mobilidade"],
+    mindset:  ["mindset", "mental", "motivação", "psicolog", "foco", "disciplina"],
+    outro:    ["outro", "geral"],
+  };
+  return (aliases[cat] || [cat]).some(kw => searchIn.includes(kw));
+}
+
 export default function InformacaoPage() {
-  const [tab, setTab] = useState<"documentos" | "videos">("documentos");
-  const [phase, setPhase] = useState("all");
+  const [activeCategory, setActiveCategory] = useState("todos");
+  const [mediaType, setMediaType] = useState<"ambos" | "documentos" | "videos">("ambos");
+  const [search, setSearch] = useState("");
 
   const { data: docs, isLoading: docsLoading } = useQuery({
     queryKey: ["admin-documents"],
@@ -70,241 +96,419 @@ export default function InformacaoPage() {
     },
   });
 
-  const filteredDocs = (docs || []).filter(d =>
-    phase === "all" ? true : d.phase === phase || !d.phase
-  );
+  const isLoading = docsLoading || videosLoading;
 
-  const filteredVideos = (videos || []).filter(v =>
-    phase === "all" ? true : v.phase === phase || !v.phase
-  );
+  const searchFilter = (item: Document | Video) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      item.title.toLowerCase().includes(q) ||
+      (item.description || "").toLowerCase().includes(q)
+    );
+  };
+
+  const filteredDocs = (docs || [])
+    .filter(d => matchesCategory(d, activeCategory))
+    .filter(searchFilter);
+
+  const filteredVideos = (videos || [])
+    .filter(v => matchesCategory(v, activeCategory))
+    .filter(searchFilter);
+
+  const showDocs = mediaType !== "videos";
+  const showVideos = mediaType !== "documentos";
+
+  const totalItems =
+    (showDocs ? filteredDocs.length : 0) +
+    (showVideos ? filteredVideos.length : 0);
+
+  const activeCat = KNOWLEDGE_CATEGORIES.find(c => c.key === activeCategory)!;
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)", paddingBottom: "80px" }}>
-      {/* Header */}
+    <div style={{ minHeight: "100vh", background: "var(--bg)", paddingBottom: "90px" }}>
+
+      {/* ── HEADER ─────────────────────────────────────────────────────── */}
       <div style={{
-        padding: "60px 20px 20px",
+        padding: "56px 20px 0",
         background: "var(--surface)",
         borderBottom: "1px solid var(--border)",
       }}>
-        <h1 style={{ fontSize: "24px", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
-          Informação
-        </h1>
-        <p style={{ color: "var(--text-3)", fontSize: "13px", margin: "4px 0 0" }}>
-          Documentos e vídeos do programa
-        </p>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "4px" }}>
+          <div>
+            <p className="label" style={{ color: "var(--text-3)", marginBottom: "4px" }}>Base de conhecimento</p>
+            <h1 className="display" style={{ fontSize: "32px", color: "var(--text)", lineHeight: 1 }}>
+              APRENDER
+            </h1>
+          </div>
+          <div style={{
+            background: "var(--accent-glow)",
+            border: "1px solid var(--accent)",
+            borderRadius: "8px",
+            padding: "6px 12px",
+            textAlign: "center",
+          }}>
+            <div className="display" style={{ fontSize: "22px", color: "var(--accent)", lineHeight: 1 }}>
+              {(docs?.length || 0) + (videos?.length || 0)}
+            </div>
+            <div className="label" style={{ fontSize: "9px", color: "var(--text-3)" }}>recursos</div>
+          </div>
+        </div>
 
-        {/* Tabs */}
-        <div style={{ display: "flex", gap: "4px", marginTop: "16px" }}>
-          {(["documentos", "videos"] as const).map(t => (
+        {/* Search */}
+        <div style={{ position: "relative", margin: "16px 0 12px" }}>
+          <span style={{
+            position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)",
+            color: "var(--text-3)", fontSize: "14px", pointerEvents: "none",
+          }}>◎</span>
+          <input
+            type="text"
+            placeholder="Pesquisar..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "10px 12px 10px 34px",
+              background: "var(--bg)",
+              border: "1px solid var(--border)",
+              borderRadius: "10px",
+              color: "var(--text)",
+              fontSize: "14px",
+              fontFamily: "'Inter', sans-serif",
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
+
+        {/* Media type toggle */}
+        <div style={{ display: "flex", gap: "6px", marginBottom: "16px" }}>
+          {([
+            { key: "ambos", label: "Tudo" },
+            { key: "documentos", label: "📄 Documentos" },
+            { key: "videos", label: "▶ Vídeos" },
+          ] as const).map(t => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={t.key}
+              onClick={() => setMediaType(t.key)}
               style={{
-                padding: "8px 16px",
+                padding: "6px 14px",
                 borderRadius: "20px",
-                border: "none",
-                background: tab === t ? "var(--accent)" : "var(--border)",
-                color: tab === t ? "var(--bg)" : "var(--text-2)",
-                fontWeight: 600,
-                fontSize: "13px",
+                border: `1px solid ${mediaType === t.key ? "var(--accent)" : "var(--border)"}`,
+                background: mediaType === t.key ? "var(--accent-glow)" : "transparent",
+                color: mediaType === t.key ? "var(--accent)" : "var(--text-3)",
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontWeight: 700,
+                fontSize: "12px",
+                letterSpacing: "0.06em",
                 cursor: "pointer",
-                textTransform: "capitalize",
+                textTransform: "uppercase",
+                transition: "all 0.15s",
               }}
             >
-              {t === "documentos" ? "📄 Documentos" : "▶ Vídeos"}
+              {t.label}
             </button>
           ))}
         </div>
-
-        {/* Phase filter */}
-        <select
-          value={phase}
-          onChange={e => setPhase(e.target.value)}
-          style={{
-            marginTop: "12px",
-            padding: "8px 12px",
-            borderRadius: "8px",
-            border: "1px solid var(--border)",
-            background: "var(--surface)",
-            color: "var(--text-1)",
-            fontSize: "13px",
-            width: "100%",
-          }}
-        >
-          {PHASES.map(p => (
-            <option key={p.value} value={p.value}>{p.label}</option>
-          ))}
-        </select>
       </div>
 
+      {/* ── CATEGORIAS ─────────────────────────────────────────────────── */}
+      <div style={{
+        overflowX: "auto",
+        padding: "16px 20px",
+        display: "flex",
+        gap: "8px",
+        scrollbarWidth: "none",
+        borderBottom: "1px solid var(--border)",
+        background: "var(--surface)",
+      }}>
+        {KNOWLEDGE_CATEGORIES.map(cat => {
+          const isActive = activeCategory === cat.key;
+          return (
+            <button
+              key={cat.key}
+              onClick={() => setActiveCategory(cat.key)}
+              style={{
+                flexShrink: 0,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "5px",
+                padding: "10px 14px",
+                borderRadius: "12px",
+                border: `1px solid ${isActive ? cat.color : "var(--border)"}`,
+                background: isActive ? `${cat.color}18` : "var(--bg)",
+                cursor: "pointer",
+                transition: "all 0.15s",
+                minWidth: "62px",
+              }}
+            >
+              <span style={{
+                fontSize: "18px",
+                color: isActive ? cat.color : "var(--text-3)",
+                lineHeight: 1,
+              }}>{cat.icon}</span>
+              <span style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontWeight: 700,
+                fontSize: "10px",
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                color: isActive ? cat.color : "var(--text-3)",
+                whiteSpace: "nowrap",
+              }}>{cat.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── CONTEÚDO ───────────────────────────────────────────────────── */}
       <div style={{ padding: "20px" }}>
-        {/* DOCUMENTOS */}
-        {tab === "documentos" && (
-          <>
-            {docsLoading ? (
-              <p style={{ color: "var(--text-3)", textAlign: "center", marginTop: "40px" }}>A carregar...</p>
-            ) : filteredDocs.length === 0 ? (
-              <div style={{ textAlign: "center", marginTop: "60px" }}>
-                <div style={{ fontSize: "40px" }}>📂</div>
-                <p style={{ color: "var(--text-3)", marginTop: "8px" }}>Nenhum documento disponível</p>
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                {filteredDocs.map(doc => (
-                  <a
-                    key={doc.id}
-                    href={doc.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "14px",
-                      padding: "16px",
-                      background: "var(--surface)",
-                      borderRadius: "12px",
-                      border: "1px solid var(--border)",
-                      textDecoration: "none",
-                      transition: "border-color 0.2s",
-                    }}
-                  >
-                    <div style={{
-                      width: "44px",
-                      height: "44px",
-                      borderRadius: "10px",
-                      background: "var(--accent)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "20px",
-                      flexShrink: 0,
-                    }}>
-                      📄
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, color: "var(--text-1)", fontSize: "14px" }}>
-                        {doc.title}
-                      </div>
-                      {doc.description && (
-                        <div style={{ color: "var(--text-3)", fontSize: "12px", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {doc.description}
-                        </div>
-                      )}
-                      {doc.phase && (
-                        <span style={{
-                          display: "inline-block",
-                          marginTop: "4px",
-                          padding: "2px 8px",
-                          borderRadius: "10px",
-                          background: "rgba(180,130,70,0.15)",
-                          color: "var(--accent)",
-                          fontSize: "11px",
-                          fontWeight: 600,
-                          textTransform: "capitalize",
-                        }}>
-                          {doc.phase}
-                        </span>
-                      )}
-                    </div>
-                    <span style={{ color: "var(--accent)", fontSize: "18px" }}>↗</span>
-                  </a>
-                ))}
-              </div>
-            )}
-          </>
+
+        {/* Stats bar */}
+        {!isLoading && (
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "20px",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "16px", color: activeCat.color }}>{activeCat.icon}</span>
+              <span className="label" style={{ color: "var(--text-2)", fontSize: "11px" }}>
+                {activeCat.label}
+              </span>
+            </div>
+            <span className="label" style={{ color: "var(--text-3)", fontSize: "10px" }}>
+              {totalItems} {totalItems === 1 ? "resultado" : "resultados"}
+            </span>
+          </div>
         )}
 
-        {/* VÍDEOS */}
-        {tab === "videos" && (
-          <>
-            {videosLoading ? (
-              <p style={{ color: "var(--text-3)", textAlign: "center", marginTop: "40px" }}>A carregar...</p>
-            ) : filteredVideos.length === 0 ? (
-              <div style={{ textAlign: "center", marginTop: "60px" }}>
-                <div style={{ fontSize: "40px" }}>🎬</div>
-                <p style={{ color: "var(--text-3)", marginTop: "8px" }}>Nenhum vídeo disponível</p>
+        {isLoading && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {[1, 2, 3].map(i => (
+              <div key={i} className="skeleton" style={{ height: "72px", borderRadius: "12px" }} />
+            ))}
+          </div>
+        )}
+
+        {!isLoading && totalItems === 0 && (
+          <div style={{ textAlign: "center", marginTop: "60px" }}>
+            <div style={{ fontSize: "36px", marginBottom: "12px", opacity: 0.4 }}>{activeCat.icon}</div>
+            <p className="label" style={{ color: "var(--text-3)", fontSize: "12px" }}>
+              Nenhum conteúdo nesta categoria
+            </p>
+          </div>
+        )}
+
+        {/* ── DOCUMENTOS ── */}
+        {showDocs && filteredDocs.length > 0 && (
+          <div style={{ marginBottom: "28px" }}>
+            {showVideos && filteredVideos.length > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                <span className="label" style={{ color: "var(--text-3)", fontSize: "10px" }}>DOCUMENTOS</span>
+                <div style={{ flex: 1, height: "1px", background: "var(--border)" }} />
+                <span className="label" style={{ color: "var(--text-3)", fontSize: "10px" }}>{filteredDocs.length}</span>
               </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                {filteredVideos.map(video => {
-                  const embedUrl = getYoutubeEmbed(video.videoUrl);
-                  return (
-                    <div
-                      key={video.id}
-                      style={{
-                        background: "var(--surface)",
-                        borderRadius: "12px",
-                        border: "1px solid var(--border)",
+            )}
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {filteredDocs.map(doc => (
+                <a
+                  key={doc.id}
+                  href={doc.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "14px",
+                    padding: "14px 16px",
+                    background: "var(--surface)",
+                    borderRadius: "12px",
+                    border: "1px solid var(--border)",
+                    textDecoration: "none",
+                    transition: "border-color 0.15s, transform 0.15s",
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.borderColor = "var(--accent)";
+                    (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)";
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.borderColor = "var(--border)";
+                    (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
+                  }}
+                >
+                  <div style={{
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "10px",
+                    background: "var(--accent-glow)",
+                    border: "1px solid var(--accent)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "17px",
+                    flexShrink: 0,
+                  }}>
+                    📄
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontFamily: "'Barlow Condensed', sans-serif",
+                      fontWeight: 700,
+                      color: "var(--text)",
+                      fontSize: "15px",
+                      lineHeight: 1.2,
+                    }}>
+                      {doc.title}
+                    </div>
+                    {doc.description && (
+                      <div style={{
+                        color: "var(--text-3)",
+                        fontSize: "12px",
+                        marginTop: "2px",
                         overflow: "hidden",
-                      }}
-                    >
-                      {embedUrl ? (
-                        <div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
-                          <iframe
-                            src={embedUrl}
-                            title={video.title}
-                            style={{
-                              position: "absolute",
-                              top: 0,
-                              left: 0,
-                              width: "100%",
-                              height: "100%",
-                              border: "none",
-                            }}
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                          />
-                        </div>
-                      ) : (
-                        <a
-                          href={video.videoUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
+                        {doc.description}
+                      </div>
+                    )}
+                    {doc.phase && doc.phase !== "todas" && (
+                      <span style={{
+                        display: "inline-block",
+                        marginTop: "4px",
+                        padding: "2px 7px",
+                        borderRadius: "8px",
+                        background: "var(--surface2)",
+                        color: "var(--accent)",
+                        fontSize: "10px",
+                        fontFamily: "'Barlow Condensed', sans-serif",
+                        fontWeight: 700,
+                        letterSpacing: "0.06em",
+                        textTransform: "uppercase",
+                      }}>
+                        {doc.phase}
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ color: "var(--accent)", fontSize: "16px", flexShrink: 0 }}>↗</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── VÍDEOS ── */}
+        {showVideos && filteredVideos.length > 0 && (
+          <div>
+            {showDocs && filteredDocs.length > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                <span className="label" style={{ color: "var(--text-3)", fontSize: "10px" }}>VÍDEOS</span>
+                <div style={{ flex: 1, height: "1px", background: "var(--border)" }} />
+                <span className="label" style={{ color: "var(--text-3)", fontSize: "10px" }}>{filteredVideos.length}</span>
+              </div>
+            )}
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {filteredVideos.map(video => {
+                const embedUrl = getYoutubeEmbed(video.videoUrl);
+                return (
+                  <div
+                    key={video.id}
+                    style={{
+                      background: "var(--surface)",
+                      borderRadius: "14px",
+                      border: "1px solid var(--border)",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {embedUrl ? (
+                      <div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
+                        <iframe
+                          src={embedUrl}
+                          title={video.title}
                           style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            height: "160px",
-                            background: "var(--surface2)",
-                            color: "var(--accent)",
-                            fontSize: "40px",
-                            textDecoration: "none",
+                            position: "absolute",
+                            top: 0, left: 0,
+                            width: "100%", height: "100%",
+                            border: "none",
                           }}
-                        >
-                          ▶
-                        </a>
-                      )}
-                      <div style={{ padding: "14px" }}>
-                        <div style={{ fontWeight: 600, color: "var(--text-1)", fontSize: "14px" }}>
-                          {video.title}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      </div>
+                    ) : (
+                      <a
+                        href={video.videoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          height: "140px",
+                          background: "var(--surface2)",
+                          color: "var(--accent)",
+                          fontSize: "36px",
+                          textDecoration: "none",
+                        }}
+                      >
+                        ▶
+                      </a>
+                    )}
+                    <div style={{ padding: "14px 16px" }}>
+                      <div style={{
+                        fontFamily: "'Barlow Condensed', sans-serif",
+                        fontWeight: 700,
+                        color: "var(--text)",
+                        fontSize: "16px",
+                        lineHeight: 1.2,
+                      }}>
+                        {video.title}
+                      </div>
+                      {video.description && (
+                        <div style={{ color: "var(--text-3)", fontSize: "12px", marginTop: "4px", lineHeight: 1.5 }}>
+                          {video.description}
                         </div>
-                        {video.description && (
-                          <div style={{ color: "var(--text-3)", fontSize: "12px", marginTop: "4px" }}>
-                            {video.description}
-                          </div>
-                        )}
-                        {video.phase && (
+                      )}
+                      <div style={{ display: "flex", gap: "6px", marginTop: "8px", flexWrap: "wrap" }}>
+                        {video.phase && video.phase !== "todas" && (
                           <span style={{
-                            display: "inline-block",
-                            marginTop: "6px",
                             padding: "2px 8px",
-                            borderRadius: "10px",
-                            background: "rgba(180,130,70,0.15)",
-                            color: "var(--accent)",
-                            fontSize: "11px",
-                            fontWeight: 600,
-                            textTransform: "capitalize",
+                            borderRadius: "8px",
+                            background: "var(--surface2)",
+                            color: "var(--text-3)",
+                            fontSize: "10px",
+                            fontFamily: "'Barlow Condensed', sans-serif",
+                            fontWeight: 700,
+                            letterSpacing: "0.06em",
+                            textTransform: "uppercase",
                           }}>
                             {video.phase}
                           </span>
                         )}
+                        {video.category && video.category !== "geral" && (
+                          <span style={{
+                            padding: "2px 8px",
+                            borderRadius: "8px",
+                            background: "var(--accent-glow)",
+                            color: "var(--accent)",
+                            fontSize: "10px",
+                            fontFamily: "'Barlow Condensed', sans-serif",
+                            fontWeight: 700,
+                            letterSpacing: "0.06em",
+                            textTransform: "uppercase",
+                          }}>
+                            {video.category}
+                          </span>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
       </div>
 
