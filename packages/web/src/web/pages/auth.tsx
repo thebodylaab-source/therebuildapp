@@ -43,11 +43,11 @@ export default function AuthPage() {
       <div style={{ width: "100%", maxWidth: "420px" }}>
         {/* Logo */}
         <div className="animate-fade-up" style={{ marginBottom: "48px", textAlign: "center" }}>
-          <h1 className="display" style={{ fontSize: "52px", color: "var(--text)", lineHeight: 1 }}>
-            <span style={{ color: "var(--accent)" }}>REBUILD</span>
+          <h1 className="display" style={{ fontSize: "56px", color: "var(--text)", lineHeight: 1, letterSpacing: "-0.03em" }}>
+            THE<span style={{ color: "var(--accent)" }}>REBUILD</span>
           </h1>
-          <p style={{ color: "var(--text-2)", marginTop: "8px", fontSize: "14px" }}>
-            {mode === "signin" ? "Bem-vindo de volta." : "Começa hoje. Agora."}
+          <p style={{ color: "var(--text-3)", marginTop: "10px", fontSize: "12px", letterSpacing: "0.2em", textTransform: "uppercase", fontFamily: "'Inter', sans-serif", fontWeight: 500 }}>
+            {mode === "signin" ? "Bem-vindo de volta." : "O programa. A disciplina. O resultado."}
           </p>
         </div>
 

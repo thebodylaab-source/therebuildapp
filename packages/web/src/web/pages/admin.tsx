@@ -73,7 +73,7 @@ export default function AdminPage() {
         <button onClick={() => navigate("/")} style={{ background: "none", border: "none", color: "var(--text-2)", cursor: "pointer", fontSize: "20px" }}>←</button>
         <div>
           <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "28px", fontWeight: 800, color: "var(--text)", margin: 0 }}>PAINEL ADMIN</h1>
-          <p style={{ color: "var(--accent)", fontSize: "12px", margin: 0 }}>REBUILD · {user?.email}</p>
+          <p style={{ color: "var(--accent)", fontSize: "12px", margin: 0 }}>THEREBUILD · {user?.email}</p>
         </div>
       </div>
 

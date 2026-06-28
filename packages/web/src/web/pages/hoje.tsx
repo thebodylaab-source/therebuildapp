@@ -55,7 +55,7 @@ function getPrescricao(sleep: number, stress: number, time: string): { titulo: s
       titulo: "Modo recuperação",
       msg: "Corpo e mente no limite. Hoje o treino é leve — movimento suave, sem intensidade alta. Recuperar também é treinar.",
       mode: "leve",
-      cor: "#B87040",
+      cor: "var(--accent-dim)",
     };
   }
   if (optimo) {
@@ -71,7 +71,7 @@ function getPrescricao(sleep: number, stress: number, time: string): { titulo: s
       titulo: "Treino com cabeça",
       msg: "Stress alto, mas consegues. Foca nos movimentos, respira fundo nos descansos. O treino vai ajudar, não piorar.",
       mode: "normal",
-      cor: "#60A0B8",
+      cor: "#4A7A9B",
     };
   }
   return {
