@@ -213,52 +213,65 @@ export default function InformacaoPage() {
 
       {/* ── CATEGORIAS ─────────────────────────────────────────────────── */}
       <div style={{
-        overflowX: "auto",
         padding: "16px 20px",
-        display: "flex",
-        gap: "8px",
-        scrollbarWidth: "none",
         borderBottom: "1px solid var(--border)",
-        background: "var(--surface)",
+        background: "var(--bg)",
       }}>
-        {KNOWLEDGE_CATEGORIES.map(cat => {
-          const isActive = activeCategory === cat.key;
-          return (
-            <button
-              key={cat.key}
-              onClick={() => setActiveCategory(cat.key)}
-              style={{
-                flexShrink: 0,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: "5px",
-                padding: "10px 14px",
-                borderRadius: "12px",
-                border: `1px solid ${isActive ? cat.color : "var(--border)"}`,
-                background: isActive ? `${cat.color}18` : "var(--bg)",
-                cursor: "pointer",
-                transition: "all 0.15s",
-                minWidth: "62px",
-              }}
-            >
-              <span style={{
-                fontSize: "18px",
-                color: isActive ? cat.color : "var(--text-3)",
-                lineHeight: 1,
-              }}>{cat.icon}</span>
-              <span style={{
-                fontFamily: "'Barlow Condensed', sans-serif",
-                fontWeight: 700,
-                fontSize: "10px",
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-                color: isActive ? cat.color : "var(--text-3)",
-                whiteSpace: "nowrap",
-              }}>{cat.label}</span>
-            </button>
-          );
-        })}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: "10px",
+        }}>
+          {KNOWLEDGE_CATEGORIES.map(cat => {
+            const isActive = activeCategory === cat.key;
+            return (
+              <button
+                key={cat.key}
+                onClick={() => setActiveCategory(cat.key)}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                  gap: "8px",
+                  padding: "14px",
+                  borderRadius: "14px",
+                  border: `1.5px solid ${isActive ? cat.color : "var(--border)"}`,
+                  background: isActive ? `${cat.color}14` : "var(--surface)",
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                  textAlign: "left",
+                }}
+              >
+                <span style={{
+                  fontSize: "22px",
+                  lineHeight: 1,
+                  filter: isActive ? "none" : "grayscale(60%) opacity(0.6)",
+                  transition: "filter 0.15s",
+                }}>{cat.icon}</span>
+                <div>
+                  <div style={{
+                    fontFamily: "'Barlow Condensed', sans-serif",
+                    fontWeight: 800,
+                    fontSize: "13px",
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                    color: isActive ? cat.color : "var(--text-2)",
+                    lineHeight: 1,
+                  }}>{cat.label}</div>
+                  {isActive && (
+                    <div style={{
+                      marginTop: "3px",
+                      width: "20px",
+                      height: "2px",
+                      borderRadius: "2px",
+                      background: cat.color,
+                    }} />
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── CONTEÚDO ───────────────────────────────────────────────────── */}
